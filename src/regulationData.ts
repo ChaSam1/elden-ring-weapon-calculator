@@ -68,6 +68,7 @@ export interface EncodedWeaponJson {
   statusSpEffectParamIds?: number[];
   reinforceTypeId: number;
   attackElementCorrectId: number;
+  attackElementInfluence?: Weapon["attackElementInfluence"];
   calcCorrectGraphIds?: Partial<Record<AttackPowerType, number>>;
   poise: number;
   stamDmg: number;

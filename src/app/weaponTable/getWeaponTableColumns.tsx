@@ -481,7 +481,7 @@ const miscColumns: WeaponTableColumnDef[] = [
     ),
     render([weapon]) {
       return (
-        <>{Math.round(weapon.poise * 10)}</>
+        <>{Math.trunc(weapon.poise * 10)}</>
       );
     },
   },

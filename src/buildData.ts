@@ -603,6 +603,49 @@ function isSupportedWeaponType(wepType: number): wepType is WeaponType {
   return supportedWeaponTypes.has(wepType) && !excludedWeaponTypes.includes(wepType as WeaponType);
 }
 
+function parseAttackElementInfluence(row: ParamRow) {
+  const result: NonNullable<
+    EncodedWeaponJson["attackElementInfluence"]
+  > = {};
+
+  const damageTypes = [
+    [AttackPowerType.PHYSICAL, "Physics"],
+    [AttackPowerType.MAGIC, "Magic"],
+    [AttackPowerType.FIRE, "Fire"],
+    [AttackPowerType.LIGHTNING, "Thunder"],
+    [AttackPowerType.HOLY, "Dark"],
+  ] as const;
+
+  const attributes = [
+    ["str", "Strength"],
+    ["dex", "Dexterity"],
+    ["int", "Magic"],
+    ["fai", "Faith"],
+    ["arc", "Luck"],
+  ] as const;
+
+  for (const [damageType, suffix] of damageTypes) {
+    const values: Partial<Record<Attribute, number>> = {};
+
+    for (const [attribute, name] of attributes) {
+      const enabled = row["is" + name + "Correct_by" + suffix];
+
+      const rate =
+        row["Influence" + name + "CorrectRate_by" + suffix] ?? 100;
+
+      if (enabled && rate !== 100) {
+        values[attribute] = rate / 100;
+      }
+    }
+
+    if (Object.keys(values).length) {
+      result[damageType] = values;
+    }
+  }
+
+  return Object.keys(result).length ? result : undefined;
+}
+
 function parseWeapon(row: ParamRow): EncodedWeaponJson | null {
   let name: string;
   let dlc = false;
@@ -712,7 +755,7 @@ function parseWeapon(row: ParamRow): EncodedWeaponJson | null {
     [
       [AttackPowerType.PHYSICAL, row.physGuardCutRate],
       [AttackPowerType.MAGIC, row.magGuardCutRate],
-      [AttackPowerType.FIRE, row.thunGuardCutRate],
+      [AttackPowerType.FIRE, row.fireGuardCutRate],
       [AttackPowerType.LIGHTNING, row.thunGuardCutRate],
       [AttackPowerType.HOLY, row.darkGuardCutRate],
       [AttackPowerType.POISON, row.poisonGuardResist],
@@ -815,6 +858,9 @@ function parseWeapon(row: ParamRow): EncodedWeaponJson | null {
     statusSpEffectParamIds,
     reinforceTypeId: row.reinforceTypeId,
     attackElementCorrectId: row.attackElementCorrectId,
+    attackElementInfluence: parseAttackElementInfluence(
+      attackElementCorrectParams.get(row.attackElementCorrectId)!
+    ),
     calcCorrectGraphIds,
     poise: row.saWeaponDamage,
     stamDmg: row.attackBaseStamina,

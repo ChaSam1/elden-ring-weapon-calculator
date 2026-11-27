@@ -57,6 +57,10 @@ export interface Weapon {
    */
   attackElementCorrect: AttackElementCorrect;
 
+  attackElementInfluence?: Partial<
+    Record<AttackPowerType, Partial<Record<Attribute, number>>>
+  >;
+
   /**
    * Map indicating which scaling curve is used for each damage type, status effect, or spell scaling
    */

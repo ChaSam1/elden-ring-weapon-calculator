@@ -102,9 +102,25 @@ export default function getWeaponAttack({
     // with
     const scalingAttributes = weapon.attackElementCorrect[attackPowerType] ?? {};
 
+    const influences =
+      weapon.attackElementInfluence?.[attackPowerType] ?? {};
+
+    const hasInfluence =
+      isDamageType && Object.keys(influences).length > 0;
+
+    let lowestContribution = 0;
     let totalScaling = 1;
 
-    if (isDamageType && ineffectiveAttributes.some((attribute) => scalingAttributes[attribute])) {
+    const ineffective = isDamageType &&
+      ineffectiveAttributes.some(
+        (attribute) => scalingAttributes[attribute]
+      );
+
+    if (ineffective && hasInfluence) {
+      ineffectiveAttackPowerTypes.push(attackPowerType);
+    }
+
+    if (ineffective && !hasInfluence) {
       // If the requirements for this damage type are not met, a penalty is subtracted instead
       // of a scaling bonus being added
       totalScaling = 1 - ineffectiveAttributePenalty;
@@ -126,7 +142,20 @@ export default function getWeaponAttack({
               (weapon.attributeScaling[0][attribute] ?? 0);
           }
 
-          if (scaling) {
+          if (hasInfluence) {
+            const influence = influences[attribute] ?? 1;
+
+            const normal = scaling
+              ? weapon.calcCorrectGraphs[attackPowerType][effectiveAttributes[attribute]] * scaling
+              : 0;
+
+            const contribution = ineffectiveAttributes.includes(attribute)
+              ? (1 - ineffectiveAttributePenalty) * influence - 1
+              : influence - 1 + normal * influence;
+
+            totalScaling += contribution;
+            lowestContribution = Math.min(lowestContribution, contribution);
+          } else if (scaling) {
             totalScaling +=
               weapon.calcCorrectGraphs[attackPowerType][effectiveAttributes[attribute]] * scaling;
           }
@@ -136,13 +165,21 @@ export default function getWeaponAttack({
 
     // The final scaling multiplier modifies the attack power for this damage type as a
     // percentage boost, e.g. 0.5 adds +50% of the base attack power
-    if (currentBaseAttackPower) {
-      baseAttackPower[attackPowerType] = currentBaseAttackPower;
-      if (includeArcaneBonus && !isDamageType && weapon.statusAdditionalCalcCorrectGraph) {
-        baseAttackPower[attackPowerType] *= 100 * weapon.statusAdditionalCalcCorrectGraph[adjustedAttributes["arc"]];
-      }
-      attackPower[attackPowerType] = baseAttackPower[attackPowerType] * totalScaling;
+    if (hasInfluence) {
+      totalScaling = Math.max(totalScaling, 1 + lowestContribution);
     }
+
+    if (currentBaseAttackPower) {
+  let adjustedBaseAttackPower = currentBaseAttackPower;
+
+  if (includeArcaneBonus && !isDamageType && weapon.statusAdditionalCalcCorrectGraph) {
+    adjustedBaseAttackPower *=
+      100 * weapon.statusAdditionalCalcCorrectGraph[adjustedAttributes["arc"]];
+  }
+
+  baseAttackPower[attackPowerType] = adjustedBaseAttackPower;
+  attackPower[attackPowerType] = adjustedBaseAttackPower * totalScaling;
+}
 
     if (isDamageType && (weapon.sorceryTool || weapon.incantationTool)) {
       spellScaling[attackPowerType] = 100 * totalScaling;
