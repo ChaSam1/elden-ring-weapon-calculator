@@ -33,6 +33,7 @@ export interface ReinforceParamWeapon {
  * Regulation data from a particular version of Elden Ring
  */
 export interface EncodedRegulationDataJson {
+  readonly attributeBonuses?: Weapon["attributeBonuses"];
   readonly calcCorrectGraphs: {
     readonly [calcCorrectId in number]?: CalcCorrectGraph;
   };
@@ -135,6 +136,7 @@ export function decodeRegulationData({
   statusSpEffectParams,
   weapons,
   scalingTiers,
+  attributeBonuses,
 }: EncodedRegulationDataJson, regulationVersion: RegulationVersion): Weapon[] {
   const calcCorrectGraphsById = new Map(
     Object.entries(calcCorrectGraphs).map(([calcCorrectGraphId, calcCorrectGraph]) => [
@@ -278,6 +280,7 @@ export function decodeRegulationData({
         calcCorrectGraphs: weaponCalcCorrectGraphs,
         statusAdditionalCalcCorrectGraph: regulationVersion.statusAdditionalCalcCorrectGraphId !== undefined ? getCalcCorrectGraph(regulationVersion.statusAdditionalCalcCorrectGraphId) : undefined,
         scalingTiers,
+        attributeBonuses,
         dlc,
       };
     },

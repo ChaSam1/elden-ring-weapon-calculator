@@ -7,6 +7,12 @@ export type AttackElementCorrect = Partial<
 >;
 
 export interface Weapon {
+  attributeBonuses?: {
+    poise: number[];
+    critical: number[];
+    staminaCost: number[];
+  };
+
   /**
    * The full unique name of the weapon, e.g. "Heavy Nightrider Glaive"
    */

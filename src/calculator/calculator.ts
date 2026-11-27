@@ -14,6 +14,11 @@ interface WeaponAttackOptions {
 }
 
 export interface WeaponAttackResult {
+  attributeBonusMultipliers?: {
+    poise: number;
+    critical: number;
+    staminaCost: number;
+  };
   upgradeLevel: number;
   baseAttackPower: Partial<Record<AttackPowerType, number>>;
   attackPower: Partial<Record<AttackPowerType, number>>;
@@ -189,6 +194,19 @@ export default function getWeaponAttack({
   }
 
   return {
+    attributeBonusMultipliers: weapon.attributeBonuses
+      ? {
+          poise: weapon.attributeBonuses.poise[
+            Math.max(1, Math.min(99, Math.trunc(attributes.str)))
+          ] ?? 1,
+          critical: weapon.attributeBonuses.critical[
+            Math.max(1, Math.min(99, Math.trunc(attributes.dex)))
+          ] ?? 1,
+          staminaCost: weapon.attributeBonuses.staminaCost[
+            Math.max(1, Math.min(99, Math.trunc(attributes.dex)))
+          ] ?? 1,
+        }
+      : undefined,
     upgradeLevel,
     baseAttackPower,
     scalingPercent,

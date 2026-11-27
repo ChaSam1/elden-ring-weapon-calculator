@@ -7,6 +7,9 @@ export type SortBy =
   | "name"
   | "totalAttack"
   | "poise"
+  | "effectivePoise"
+  | "effectiveCrit"
+  | "effectiveStamCost"
   | "stamDmg"
   | "stamCost"
   | "weight"
@@ -37,6 +40,24 @@ export function sortWeapons(
 
     if (sortBy === "totalAttack") {
       return ([, { attackPower }]) => -getTotalDamageAttackPower(attackPower);
+    }
+
+    if (sortBy === "effectivePoise") {
+      return ([weapon, result]) =>
+        -(weapon.poise * 10 *
+          (result.attributeBonusMultipliers?.poise ?? 1));
+    }
+
+    if (sortBy === "effectiveCrit") {
+      return ([weapon, result]) =>
+        -((weapon.crit + 100) *
+          (result.attributeBonusMultipliers?.critical ?? 1));
+    }
+
+    if (sortBy === "effectiveStamCost") {
+      return ([weapon, result]) =>
+        -(weapon.stamCost * 100 *
+          (result.attributeBonusMultipliers?.staminaCost ?? 1));
     }
 
     if (sortBy === "poise") {

@@ -1140,7 +1140,57 @@ for (const [id, row] of menuValueTableParams) {
   }
 }
 
+function extractReforgedAttributeBonuses() {
+  function readRate(id: number, field: string): number {
+    const row = spEffectParams.get(id);
+
+    if (!row) {
+      throw new Error("Missing attribute bonus effect: " + id);
+    }
+
+    const value = row[field];
+
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new Error("Invalid bonus: " + id + " " + field);
+    }
+
+    return value;
+  }
+
+  const poise = [1];
+  const critical = [1];
+  const staminaCost = [1];
+
+  for (let level = 1; level <= 99; level++) {
+    poise.push(readRate(
+      158400 + level, "saAttackPowerRate"
+    ));
+
+    const dexId = 158500 + level;
+    const crit = readRate(dexId, "physicsAttackRate");
+
+    for (const field of [
+      "magicAttackRate",
+      "fireAttackRate",
+      "thunderAttackRate",
+      "darkAttackRate"
+    ]) {
+      if (Math.abs(readRate(dexId, field) - crit) > 0.00001) {
+        throw new Error("Unequal critical multipliers: " + dexId);
+      }
+    }
+
+    critical.push(crit);
+    staminaCost.push(readRate(dexId, "consumeStaminaRate"));
+  }
+
+  return { poise, critical, staminaCost };
+}
+
 const regulationDataJson: EncodedRegulationDataJson = {
+  attributeBonuses: isReforged
+    ? extractReforgedAttributeBonuses()
+    : undefined,
   calcCorrectGraphs: calcCorrectGraphsJson,
   attackElementCorrects: attackElementCorrectsJson,
   reinforceTypes: reinforceTypesJson,

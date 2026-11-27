@@ -561,6 +561,99 @@ const miscColumns: WeaponTableColumnDef[] = [
   },
 ];
 
+const effectiveAttributeColumns: WeaponTableColumnDef[] = [
+
+  {
+    key: "effectiveCrit",
+    sortBy: "effectiveCrit",
+    header: (
+      <Typography
+        component="span"
+        variant="subtitle2"
+        title={"Effective Critical Rating (DEX bonus)"}
+      >
+        Eff. Crit
+      </Typography>
+    ),
+    render([weapon, result]) {
+      const base = weapon.crit + 100;
+      const bonus = result.attributeBonusMultipliers?.critical;
+
+      if (bonus === undefined) return <>—</>;
+
+      return (
+        <span title={
+          "Base: " + base.toFixed(2) +
+          " | DEX multiplier: " +
+          bonus.toFixed(4) + "x"
+        }>
+          {(base * bonus).toFixed(2)}
+        </span>
+      );
+    },
+  },
+
+  {
+    key: "effectivePoise",
+    sortBy: "effectivePoise",
+    header: (
+      <Typography
+        component="span"
+        variant="subtitle2"
+        title={"Effective Poise Rating (STR bonus)"}
+      >
+        Eff. Poise
+      </Typography>
+    ),
+    render([weapon, result]) {
+      const base = weapon.poise * 10;
+      const bonus = result.attributeBonusMultipliers?.poise;
+
+      if (bonus === undefined) return <>—</>;
+
+      return (
+        <span title={
+          "Base: " + base.toFixed(2) +
+          " | STR multiplier: " +
+          bonus.toFixed(4) + "x"
+        }>
+          {(base * bonus).toFixed(2)}
+        </span>
+      );
+    },
+  },
+
+  {
+    key: "effectiveStamCost",
+    sortBy: "effectiveStamCost",
+    header: (
+      <Typography
+        component="span"
+        variant="subtitle2"
+        title={"Effective Stamina Cost (DEX bonus)"}
+      >
+        Eff. Stam.Cost
+      </Typography>
+    ),
+    render([weapon, result]) {
+      const base = weapon.stamCost * 100;
+      const bonus = result.attributeBonusMultipliers?.staminaCost;
+
+      if (bonus === undefined) return <>—</>;
+
+      return (
+        <span title={
+          "Base: " + base.toFixed(2) +
+          " | DEX multiplier: " +
+          bonus.toFixed(4) + "x"
+        }>
+          {(base * bonus).toFixed(2)}%
+        </span>
+      );
+    },
+  },
+];
+
 const miscReforgedColumns: WeaponTableColumnDef[] = [
   {
     key: "weightRate",
@@ -696,6 +789,16 @@ export default function getWeaponTableColumns({
       header: "Other Properties",
       columns: [ ...miscColumns, ...(regulationVersionName == "reforged" ? [...miscReforgedColumns] : []) ],
     },
+    ...(regulationVersionName === "reforged" ? [
+      {
+        key: "effectiveAttributes",
+        header: "Effective Weapon Properties",
+        sx: {
+          width: 110 * effectiveAttributeColumns.length + 21,
+        },
+        columns: effectiveAttributeColumns,
+      },
+    ] : []),
     ...(includedWeakRateTypes.length > 0 ?
       [
         {
