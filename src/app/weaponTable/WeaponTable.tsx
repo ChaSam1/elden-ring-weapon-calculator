@@ -1,6 +1,24 @@
-import { memo, type ReactNode, useMemo } from "react";
+import {
+  memo,
+  type ReactNode,
+  useMemo,
+  useState,
+  useEffect,
+  isValidElement,
+} from "react";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
-import { Box, Typography } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Button,
+  Checkbox,
+  FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider,
+} from "@mui/material";
 import type { SystemStyleObject, Theme } from "@mui/system";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
@@ -209,6 +227,242 @@ const DataRow = memo(function DataRow({
   );
 });
 
+const columnStorageKey =
+  "err-calculator-hidden-columns-v1";
+
+function getColumnId(
+  group: WeaponTableColumnGroupDef,
+  column: WeaponTableColumnDef
+): string {
+  return group.key + ":" + column.key;
+}
+
+function getColumnLabel(
+  column: WeaponTableColumnDef
+): ReactNode {
+  if (isValidElement<{
+    title?: string;
+    alt?: string;
+    children?: ReactNode;
+  }>(column.header)) {
+    return column.header.props.title
+      ?? column.header.props.alt
+      ?? column.header.props.children
+      ?? column.key;
+  }
+
+  return column.header ?? column.key;
+}
+
+function loadHiddenColumns(): string[] {
+  try {
+    const saved = JSON.parse(
+      window.localStorage.getItem(columnStorageKey) ?? "[]"
+    );
+
+    return Array.isArray(saved)
+      ? saved.filter(
+          (value): value is string =>
+            typeof value === "string"
+        )
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+interface ColumnPickerProps {
+  groups: readonly WeaponTableColumnGroupDef[];
+  hidden: ReadonlySet<string>;
+  onChange(ids: string[], hide: boolean): void;
+  onReset(): void;
+}
+
+function ColumnPicker({
+  groups,
+  hidden,
+  onChange,
+  onReset,
+}: ColumnPickerProps) {
+  const [open, setOpen] = useState(false);
+
+  const optionalGroups = groups.filter(
+    group => group.key !== "name"
+  );
+
+  const allIds = optionalGroups.flatMap(
+    group => group.columns.map(
+      column => getColumnId(group, column)
+    )
+  );
+
+  const visibleCount = allIds.filter(
+    id => !hidden.has(id)
+  ).length;
+
+  return (
+    <>
+      <Box
+        display="flex"
+        alignItems="center"
+        flexWrap="wrap"
+        gap={1}
+      >
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => setOpen(true)}
+        >
+          Customize Columns
+        </Button>
+
+        <Typography
+          variant="caption"
+          color="text.secondary"
+        >
+          {visibleCount} / {allIds.length} optional columns
+        </Typography>
+      </Box>
+
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          Customize Weapon Columns
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mb: 2 }}
+          >
+            Choose which columns appear in the weapon table.
+            Your preferences are saved automatically.
+          </Typography>
+
+          <Box
+            display="flex"
+            flexWrap="wrap"
+            gap={1}
+            sx={{ mb: 2 }}
+          >
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => onChange(allIds, false)}
+            >
+              Show All
+            </Button>
+
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => onChange(allIds, true)}
+            >
+              Hide All Optional
+            </Button>
+
+            <Button
+              size="small"
+              onClick={onReset}
+            >
+              Reset Defaults
+            </Button>
+          </Box>
+
+          {optionalGroups.map(group => {
+            const ids = group.columns.map(
+              column => getColumnId(group, column)
+            );
+
+            const allVisible = ids.every(
+              id => !hidden.has(id)
+            );
+
+            const someVisible = ids.some(
+              id => !hidden.has(id)
+            );
+
+            return (
+              <Box key={group.key} sx={{ mb: 2 }}>
+                <Divider sx={{ mb: 1 }} />
+
+                <FormControlLabel
+                  label={
+                    <Typography fontWeight={600}>
+                      {group.header ??
+                        (group.key === "nameEnd"
+                          ? "Trailing Weapon Name"
+                          : group.key === "attack"
+                            ? "Attack Power"
+                            : group.key)}
+                    </Typography>
+                  }
+                  control={
+                    <Checkbox
+                      checked={allVisible}
+                      indeterminate={
+                        someVisible && !allVisible
+                      }
+                      onChange={() =>
+                        onChange(ids, allVisible)
+                      }
+                    />
+                  }
+                />
+
+                <Box
+                  display="grid"
+                  sx={{
+                    pl: 2,
+                    gridTemplateColumns: {
+                      xs: "1fr",
+                      sm: "1fr 1fr",
+                    },
+                  }}
+                >
+                  {group.columns.map(column => {
+                    const id = getColumnId(group, column);
+
+                    return (
+                      <FormControlLabel
+                        key={id}
+                        label={getColumnLabel(column)}
+                        control={
+                          <Checkbox
+                            size="small"
+                            checked={!hidden.has(id)}
+                            onChange={event =>
+                              onChange(
+                                [id],
+                                !event.target.checked
+                              )
+                            }
+                          />
+                        }
+                      />
+                    );
+                  })}
+                </Box>
+              </Box>
+            );
+          })}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>
+            Done
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+}
+
 function WeaponTable({
   regulationVersionName,
   rowGroups,
@@ -227,7 +481,7 @@ function WeaponTable({
   onSortByChanged,
   onReverseChanged,
 }: Props) {
-  const columnGroups = useMemo(
+  const allColumnGroups = useMemo(
     () =>
       getWeaponTableColumns({
         regulationVersionName,
@@ -243,7 +497,99 @@ function WeaponTable({
     [regulationVersionName, splitDamage, showBaseDamage, splitSpellScaling, numericalScaling, showScalingAsPercent, attackPowerTypes, weakRateTypes, spellScaling],
   );
 
+  const [hiddenColumns, setHiddenColumns] =
+    useState<string[]>(loadHiddenColumns);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        columnStorageKey,
+        JSON.stringify(hiddenColumns)
+      );
+    } catch {
+      // Column selection still works if storage is unavailable.
+    }
+  }, [hiddenColumns]);
+
+  const hiddenSet = useMemo(
+    () => new Set(hiddenColumns),
+    [hiddenColumns]
+  );
+
+  const columnGroups = useMemo<
+    WeaponTableColumnGroupDef[]
+  >(() => {
+    return allColumnGroups.flatMap(group => {
+      // Keep the main weapon name visible.
+      if (group.key === "name") return [group];
+
+      const columns = group.columns.filter(
+        column => !hiddenSet.has(
+          getColumnId(group, column)
+        )
+      );
+
+      // Remove empty groups.
+      if (columns.length === 0) return [];
+
+      // Preserve the original layout when nothing is hidden.
+      if (columns.length === group.columns.length) {
+        return [group];
+      }
+
+      const sx = group.sx;
+
+      // Shrink groups when individual columns are hidden.
+      if (
+        sx &&
+        typeof sx === "object" &&
+        "width" in sx &&
+        typeof sx.width === "number"
+      ) {
+        const width = Math.max(
+          80,
+          Math.round(
+            27 + (sx.width - 27) *
+            columns.length / group.columns.length
+          )
+        );
+
+        return [{
+          ...group,
+          columns,
+          sx: { ...sx, width },
+        }];
+      }
+
+      return [{ ...group, columns }];
+    });
+  }, [allColumnGroups, hiddenSet]);
+
+  function changeColumnVisibility(
+    ids: string[],
+    hide: boolean
+  ) {
+    setHiddenColumns(previous => {
+      const next = new Set(previous);
+
+      for (const id of ids) {
+        if (hide) next.add(id);
+        else next.delete(id);
+      }
+
+      return [...next];
+    });
+  }
+
   return (
+    <>
+      <ColumnPicker
+        groups={allColumnGroups}
+        hidden={hiddenSet}
+        onChange={changeColumnVisibility}
+        onReset={() => setHiddenColumns([])}
+      />
+
     <ScrollArea.Root asChild>
       <WeaponTableBody role="table">
         <ScrollArea.Viewport>
@@ -309,6 +655,7 @@ function WeaponTable({
         </ScrollArea.Scrollbar>
       </WeaponTableBody>
     </ScrollArea.Root>
+    </>
   );
 }
 
