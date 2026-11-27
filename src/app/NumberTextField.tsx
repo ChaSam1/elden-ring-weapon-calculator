@@ -83,7 +83,7 @@ export default function NumberTextField({
       }
 
       const clamped = clampValue(newValue, min, max);
-      setValueStr(newValue === clamped ? newValueStr : clamped.toString());
+      setValueStr(newValueStr);
       onChange?.(clamped, evt);
     },
     [min, max, onChange],

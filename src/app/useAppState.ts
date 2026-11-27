@@ -5,6 +5,7 @@ import type { RegulationVersionName } from "./regulationVersions.tsx";
 import regulationVersions from "./regulationVersions.tsx";
 import { dlcWeaponTypes } from "./uiUtils.ts";
 import { type WeaponOption } from "./WeaponPicker.tsx";
+import { allAttributes, minimumAttributes } from "../calculator/attributes.ts";
 
 interface AppState {
   readonly regulationVersionName: RegulationVersionName;
@@ -95,7 +96,16 @@ function getInitialAppState() {
     appState.regulationVersionName = regulationVersionName as RegulationVersionName;
   }
 
-  return appState;
+  appState.attributes = { ...appState.attributes };
+
+for (const attribute of allAttributes) {
+  appState.attributes[attribute] = Math.max(
+    minimumAttributes[attribute],
+    appState.attributes[attribute],
+  );
+}
+
+return appState;
 }
 
 /**
@@ -145,7 +155,10 @@ export default function useAppState() {
       setAttribute(attribute, value) {
         setAppState((prevAppState) => ({
           ...prevAppState,
-          attributes: { ...prevAppState.attributes, [attribute]: value },
+          attributes: {
+  ...prevAppState.attributes,
+  [attribute]: Math.max(minimumAttributes[attribute], value),
+},
         }));
       },
       setTwoHanding(twoHanding) {

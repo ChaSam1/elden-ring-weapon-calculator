@@ -1,3 +1,4 @@
+import { minimumAttributes } from "../calculator/attributes.ts";
 import { memo } from "react";
 import {
   Box,
@@ -33,7 +34,7 @@ const AttributeInput = memo(function AttributeInput({
       size="small"
       variant="outlined"
       value={value}
-      min={1}
+      min={minimumAttributes[attribute]}
       max={99}
       onChange={(newValue) => onAttributeChanged(attribute, newValue)}
     />
